@@ -1,0 +1,118 @@
+CREATE DATABASE env;
+USE env;
+
+-- Create Activities Table
+CREATE TABLE Activities (
+    activity_id INT PRIMARY KEY,
+    activity_name VARCHAR(100),
+    description TEXT
+);
+
+-- Create Projects Table
+CREATE TABLE Projects (
+    project_id INT PRIMARY KEY,
+    project_name VARCHAR(100),
+    start_date DATE,
+    end_date DATE,
+    activity_id INT,
+    FOREIGN KEY (activity_id) REFERENCES Activities(activity_id)
+);
+
+-- Create EnvironmentalMetrics Table
+CREATE TABLE EnvironmentalMetrics (
+    metric_id INT PRIMARY KEY,
+    metric_name VARCHAR(100),
+    unit VARCHAR(50)
+);
+
+-- Create ProjectMetrics Table
+CREATE TABLE ProjectMetrics (
+    project_metric_id INT PRIMARY KEY,
+    project_id INT,
+    metric_id INT,
+    value DECIMAL(10, 2),
+    timestamp DATETIME,
+    FOREIGN KEY (project_id) REFERENCES Projects(project_id),
+    FOREIGN KEY (metric_id) REFERENCES EnvironmentalMetrics(metric_id)
+);
+
+-- Create Organizations Table
+CREATE TABLE Organizations (
+    organization_id INT PRIMARY KEY,
+    organization_name VARCHAR(100),
+    industry VARCHAR(100)
+);
+
+-- Create OrganizationProjects Table
+CREATE TABLE OrganizationProjects (
+    organization_project_id INT PRIMARY KEY,
+    organization_id INT,
+    project_id INT,
+    FOREIGN KEY (organization_id) REFERENCES Organizations(organization_id),
+    FOREIGN KEY (project_id) REFERENCES Projects(project_id)
+);
+
+-- Insert Activities
+INSERT INTO Activities (activity_id, activity_name, description) VALUES
+(1, 'Manufacturing', 'Production of goods and materials'),
+(2, 'Transportation', 'Movement of goods and people');
+
+-- Insert Projects
+INSERT INTO Projects (project_id, project_name, start_date, end_date, activity_id) VALUES
+(1, 'Green Factory Initiative', '2024-01-01', '2024-12-31', 1),
+(2, 'Electric Fleet Transition', '2024-03-01', '2025-03-01', 2);
+
+-- Insert Environmental Metrics
+INSERT INTO EnvironmentalMetrics (metric_id, metric_name, unit) VALUES
+(1, 'CO2 Emissions', 'tons'),
+(2, 'Water Usage', 'liters');
+
+-- Insert Project Metrics
+INSERT INTO ProjectMetrics (project_metric_id, project_id, metric_id, value, timestamp) VALUES
+(1, 1, 1, 500, '2024-06-30'),
+(2, 1, 2, 200000, '2024-06-30'),
+(3, 2, 1, 100, '2024-06-30'),
+(4, 2, 2, 50000, '2024-06-30');
+
+-- Insert Organizations
+INSERT INTO Organizations (organization_id, organization_name, industry) VALUES
+(1, 'EcoCorp', 'Manufacturing'),
+(2, 'TransGreen', 'Transportation');
+
+-- Insert Organization Projects
+INSERT INTO OrganizationProjects (organization_project_id, organization_id, project_id) VALUES
+(1, 1, 1),
+(2, 2, 2);
+
+-- Total CO2 Emissions by Projects
+SELECT P.project_name, SUM(PM.value) AS total_co2_emissions
+FROM ProjectMetrics PM
+JOIN Projects P ON PM.project_id = P.project_id
+JOIN EnvironmentalMetrics EM ON PM.metric_id = EM.metric_id
+WHERE EM.metric_name = 'CO2 Emissions'
+GROUP BY P.project_name;
+
+-- Water Usage for All Projects
+SELECT P.project_name, SUM(PM.value) AS total_water_usage
+FROM ProjectMetrics PM
+JOIN Projects P ON PM.project_id = P.project_id
+JOIN EnvironmentalMetrics EM ON PM.metric_id = EM.metric_id
+WHERE EM.metric_name = 'Water Usage'
+GROUP BY P.project_name;
+
+-- Metrics for a Specific Organization
+SELECT O.organization_name, P.project_name, EM.metric_name, PM.value
+FROM ProjectMetrics PM
+JOIN Projects P ON PM.project_id = P.project_id
+JOIN OrganizationProjects OP ON P.project_id = OP.project_id
+JOIN Organizations O ON OP.organization_id = O.organization_id
+JOIN EnvironmentalMetrics EM ON PM.metric_id = EM.metric_id
+WHERE O.organization_name = 'EcoCorp';
+
+-- Metrics Over Time
+SELECT P.project_name, EM.metric_name, AVG(PM.value) AS average_value, MONTH(PM.timestamp) AS month
+FROM ProjectMetrics PM
+JOIN Projects P ON PM.project_id = P.project_id
+JOIN EnvironmentalMetrics EM ON PM.metric_id = EM.metric_id
+GROUP BY P.project_name, EM.metric_name, month
+ORDER BY P.project_name, EM.metric_name, month;
